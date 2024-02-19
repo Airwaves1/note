@@ -191,7 +191,7 @@ GL_CALL(glGenBuffers(1, &vbo));	//生成一个vbo，还没有分配显存
 GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));	//绑定vbo，后续的操作都是基于这个vbo的
 
 //3.传输数据到vbo，从CPU内存到GPU内存，在开辟显存
-GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);	//GL_STATIC_DRAW:数据不会或几乎不会改变
+GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);	//GL_STATIC_DRAW:数据不会或几乎不会改变.
 
 ```
 
@@ -213,6 +213,6 @@ float vertices[] = {
     -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,	//左下角
     0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,	//右下角
     0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f	//顶部
-};
+}; 
 ```
 ![alt text](image-14.png)
