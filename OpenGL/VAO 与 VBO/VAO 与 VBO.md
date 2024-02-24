@@ -197,7 +197,7 @@ GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW
 
 ---
 
-# 6. VAO
+# 4. VAO
 **什么是VAO**
  - 描述结构： 在图形学编程中，对于一组纯粹的数据，我们可以使用VBO来描述这组数据，但是VBO只能描述数据，不能描述数据的结构。
 
@@ -216,3 +216,167 @@ float vertices[] = {
 }; 
 ```
 ![alt text](image-14.png)
+
+![alt text](image-15.png)
+
+
+### 1. 创建VAO
+
+`void glGenVertexArrays(GLsizei n, GLuint *arrays);`
+ - n：创建VAO对象的个数
+ - arrays：存储创建的VAO对象的ID编号
+
+### 2.删除VAO
+
+`void glDeleteVertexArrays(GLsizei n, const GLuint *arrays);`
+ - n：销毁VAO对象的个数
+ - arrays：存储销毁的VAO对象的ID编号
+
+### 3. VAO绑定
+`void glBindVertexArray(GLuint array);`
+ - array：绑定VAO的编号；0表示不绑定任何VAO
+
+### 4. VAO绑定VBO
+`void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid *pointer);`
+ - index：顶点属性的位置值
+ - size：每个顶点属性的元素个数
+ - type：元素的类型
+ - normalized：是否需要归一化
+ - stride：相邻两个顶点属性的间隔
+ - pointer：顶点属性的偏移量
+
+**singleBuffer策略**
+准备两个vbo，一个存储位置数据，一个存储颜色数据，然后创建一个vao，将两个vbo绑定到vao上
+
+
+```c
+
+void prepareSingleBuffer()
+{
+	//1.准备positions ，colors数据
+	float positions[] = {
+		-0.5f, -0.5f, 0.0f,	//左下角
+		0.5f, -0.5f, 0.0f,	//右下角
+		0.0f,  0.5f, 0.0f	//顶部
+	};
+
+	float colors[] = {
+		1.0f, 0.0f, 0.0f,	//左下角
+		0.0f, 1.0f, 0.0f,	//右下角
+		0.0f, 0.0f, 1.0f	//顶部
+	};
+
+
+	//2. 使用数据生成两个vbo ， positionsVBO，colorsVBO
+	GLuint positionsVBO = 0;
+	GLuint colorsVBO = 0;
+
+	GL_CALL(glGenBuffers(1, &positionsVBO));
+	GL_CALL(glGenBuffers(1, &colorsVBO));
+
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, positionsVBO));
+	GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW));
+
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, colorsVBO));
+	GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW));
+
+	//3. 生成一个vao
+	GLuint vao = 0;
+	GL_CALL(glGenVertexArrays(1, &vao));
+
+	//并绑定
+	GL_CALL(glBindVertexArray(vao));
+
+	//4. 分别将位置/颜色属性的描述信息加入vao当中
+	//4.1 位置属性
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, positionsVBO));	
+	GL_CALL(glEnableVertexAttribArray(0));	//启用VAO的零号顶点属性位置
+	GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0));	//设置顶点属性指针
+
+	//4.2 颜色属性
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, colorsVBO));
+	GL_CALL(glEnableVertexAttribArray(1));	//启用VAO的一号顶点属性位置
+	GL_CALL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0));	//设置顶点属性指针
+
+	//5. 解绑vao
+	GL_CALL(glBindVertexArray(0));
+}
+
+
+```
+
+通过这个VAO就可以确认三角形的结构了，这样在绘制三角形时，只需要绑定VAO即可，不需要再次绑定VBO了。
+
+**InterleavedBuffer策略**
+```c
+
+void prepareInterleavedBuffer()
+{
+	//顶点数据
+	float vertices[] = {
+		//位置数据          //颜色数据
+		-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,	//左下角
+		0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,	//右下角
+		0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f	//顶部
+	};
+
+	//1. 生成一个vbo
+	GLuint vbo = 0;
+	GL_CALL(glGenBuffers(1, &vbo));
+
+	//2. 绑定vbo
+	GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+
+	//3. 传输数据
+	GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
+
+	//4. 生成一个vao
+	GLuint vao = 0;
+	GL_CALL(glGenVertexArrays(1, &vao));
+
+	//5. 绑定vao
+	GL_CALL(glBindVertexArray(vao));
+
+	//6. 设置顶点属性指针
+	GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0));	//位置属性
+	GL_CALL(glEnableVertexAttribArray(0));	//启用VAO的零号顶点属性位置
+
+	GL_CALL(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float))));	//颜色属性
+	GL_CALL(glEnableVertexAttribArray(1));	//启用VAO的一号顶点属性位置
+
+	//7. 解绑vao
+	GL_CALL(glBindVertexArray(0));
+}
+
+```
+
+---
+---
+# 总结
+
+####VBO（Vertex Buffer Object）
+存储Mesh顶点属性数据。
+
+ - singleBuffer策略：每个属性存储为一个vbo
+ - InterleavedBuffer策略：所有属性存储为一个vbo
+
+####VAO（Vertex Array Object）
+描述VBO的结构,存储一个Mesh所有属性的描述
+ - 主要解决的问题：VBO只能描述数据，不能描述数据的结构
+
+ - 方式：为当前Mesh的每个属性提供具体的描述信息，然后将这些描述信息绑定到VAO上
+
+    - 每个顶点 多少个 数字
+	- 每个顶点的数据类型
+	- 是否需要归一化
+	- 相邻两个顶点属性的间隔
+	- 顶点属性的偏移量
+	- 此属性存储在哪个VBO中
+
+
+
+# 练习
+对于一个Mesh ，有如下顶点属性：位置（xyz），颜色（rgba），uv（uv），请用纯interleavedBuffer策略，创建一个VAO描述这个Mesh的结构。
+![alt text](image-16.png)
+
+![alt text](image-17.png)
